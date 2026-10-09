@@ -100,31 +100,54 @@ class MainActivity : Activity() {
 
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(22), dp(22), dp(22), dp(8))
+            setPadding(dp(22), dp(12), dp(22), dp(8))
         }
-
-        val heading = when (page) {
-            "Keypad" -> "Keypad"
-            "Recents" -> "Recents"
-            else -> "Contacts"
-        }
-
+        header.addView(text("Jibon One", 14f, green, true))
         header.addView(
-            text(heading, 34f, ink, true),
-            LinearLayout.LayoutParams(-1, dp(58))
+            text(
+                when (page) {
+                    "Keypad" -> "Phone"
+                    "Recents" -> "Recent calls"
+                    else -> "Contacts"
+                },
+                30f, ink, true
+            ),
+            LinearLayout.LayoutParams(-1, dp(48))
         )
         root.addView(header)
+
+        val tabs = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(dp(14), dp(4), dp(14), dp(12))
+        }
+        listOf("Keypad", "Recents", "Contacts").forEach { name ->
+            val active = page == name
+            val tab = button(
+                name,
+                if (active) ink else paper,
+                if (active) white else muted,
+                14f
+            ) {
+                page = name
+                render()
+            }
+            tabs.addView(
+                tab,
+                LinearLayout.LayoutParams(0, dp(43), 1f).apply {
+                    setMargins(dp(3), 0, dp(3), 0)
+                }
+            )
+        }
+        root.addView(tabs)
 
         val scroll = ScrollView(this).apply {
             isFillViewport = true
             clipToPadding = false
-            setPadding(dp(16), 0, dp(16), dp(8))
+            setPadding(dp(16), dp(4), dp(16), dp(12))
         }
-
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
         }
-
         scroll.addView(content)
         root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
 
@@ -133,96 +156,31 @@ class MainActivity : Activity() {
             "Recents" -> showRecents(content)
             else -> showContacts(content)
         }
-
-        // Bottom navigation inspired by Samsung One UI.
-        val nav = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-            setPadding(dp(8), dp(4), dp(8), dp(4))
-            setBackgroundColor(white)
-            elevation = dp(8).toFloat()
-        }
-
-        val destinations = listOf(
-            Triple("Keypad", "▦", "Keypad"),
-            Triple("Recents", "◷", "Recents"),
-            Triple("Contacts", "♙", "Contacts")
-        )
-
-        destinations.forEach { (destination, symbol, label) ->
-            val active = page == destination
-
-            val item = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                gravity = Gravity.CENTER
-                isClickable = true
-                isFocusable = true
-                setOnClickListener {
-                    page = destination
-                    render()
-                }
-            }
-
-            val icon = TextView(this).apply {
-                text = symbol
-                textSize = 23f
-                gravity = Gravity.CENTER
-                setTextColor(if (active) green else muted)
-                if (active) {
-                    background = rounded(Color.rgb(225, 244, 233), 24)
-                }
-            }
-
-            item.addView(
-                icon,
-                LinearLayout.LayoutParams(dp(64), dp(34))
-            )
-
-            item.addView(
-                text(
-                    label,
-                    11f,
-                    if (active) green else muted,
-                    active
-                ).apply {
-                    gravity = Gravity.CENTER
-                },
-                LinearLayout.LayoutParams(-1, dp(22))
-            )
-
-            nav.addView(
-                item,
-                LinearLayout.LayoutParams(0, dp(62), 1f)
-            )
-        }
-
-        root.addView(nav, LinearLayout.LayoutParams(-1, dp(70)))
     }
 
     private fun showKeypad(content: LinearLayout) {
         val display = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setPadding(dp(4), dp(8), dp(4), dp(4))
+            setPadding(dp(12), dp(18), dp(12), dp(12))
+            background = rounded(white, 28)
         }
-
         display.addView(
             text(
                 if (phoneNumber.isBlank()) "Enter number" else phoneNumber,
-                if (phoneNumber.length > 13) 23f else 31f,
+                if (phoneNumber.length > 13) 23f else 29f,
                 if (phoneNumber.isBlank()) muted else ink,
                 true
             ).apply {
                 gravity = Gravity.CENTER
                 maxLines = 2
             },
-            LinearLayout.LayoutParams(-1, dp(76))
+            LinearLayout.LayoutParams(-1, dp(65))
         )
-
         content.addView(
             display,
-            LinearLayout.LayoutParams(-1, dp(94)).apply {
-                bottomMargin = dp(4)
+            LinearLayout.LayoutParams(-1, dp(105)).apply {
+                bottomMargin = dp(14)
             }
         )
 
@@ -232,7 +190,6 @@ class MainActivity : Activity() {
             listOf("7", "8", "9"),
             listOf("*", "0", "#")
         )
-
         val hints = listOf(
             listOf("", "ABC", "DEF"),
             listOf("GHI", "JKL", "MNO"),
@@ -240,39 +197,27 @@ class MainActivity : Activity() {
             listOf("", "+", "")
         )
 
-        val keyBackground = Color.rgb(241, 243, 245)
-
         keys.forEachIndexed { rowIndex, rowKeys ->
             val row = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER
             }
-
             rowKeys.forEachIndexed { colIndex, key ->
-                val cell = LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                    gravity = Gravity.CENTER
-                }
-
                 val keyView = LinearLayout(this).apply {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER
-                    background = rounded(keyBackground, 50)
+                    background = rounded(white, 24)
                     isClickable = true
                     isFocusable = true
-                    contentDescription = key
                     setOnClickListener {
                         phoneNumber += key
                         render()
                     }
                 }
-
                 keyView.addView(
-                    text(key, 27f, ink, false).apply {
+                    text(key, 25f, ink, true).apply {
                         gravity = Gravity.CENTER
                     }
                 )
-
                 if (hints[rowIndex][colIndex].isNotEmpty()) {
                     keyView.addView(
                         text(hints[rowIndex][colIndex], 9f, muted).apply {
@@ -280,39 +225,34 @@ class MainActivity : Activity() {
                         }
                     )
                 }
-
-                cell.addView(
-                    keyView,
-                    LinearLayout.LayoutParams(dp(68), dp(68))
-                )
-
                 row.addView(
-                    cell,
-                    LinearLayout.LayoutParams(0, dp(76), 1f)
+                    keyView,
+                    LinearLayout.LayoutParams(0, dp(66), 1f).apply {
+                        setMargins(dp(4), dp(4), dp(4), dp(4))
+                    }
                 )
             }
-
             content.addView(row)
         }
 
         val actions = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
-            setPadding(0, dp(10), 0, dp(8))
+            setPadding(dp(4), dp(10), dp(4), dp(8))
         }
-
         actions.addView(
-            button("⌫", Color.TRANSPARENT, ink, 25f) {
+            button("⌫", white, ink, 25f) {
                 if (phoneNumber.isNotEmpty()) {
                     phoneNumber = phoneNumber.dropLast(1)
                     render()
                 }
             },
-            LinearLayout.LayoutParams(dp(64), dp(62))
+            LinearLayout.LayoutParams(dp(64), dp(58)).apply {
+                rightMargin = dp(12)
+            }
         )
-
         actions.addView(
-            button("☎", green, white, 27f) {
+            button("Call", green, white, 19f) {
                 if (phoneNumber.isNotBlank()) {
                     val intent = Intent(
                         Intent.ACTION_DIAL,
@@ -321,15 +261,16 @@ class MainActivity : Activity() {
                     startActivity(intent)
                 }
             },
-            LinearLayout.LayoutParams(dp(64), dp(62))
+            LinearLayout.LayoutParams(0, dp(58), 1f)
         )
-
-        actions.addView(
-            View(this),
-            LinearLayout.LayoutParams(dp(64), dp(62))
-        )
-
         content.addView(actions)
+
+        content.addView(
+            text("Tap a number to begin", 12f, muted).apply {
+                gravity = Gravity.CENTER
+                setPadding(0, dp(8), 0, dp(12))
+            }
+        )
     }
 
     private fun hasPermission(permission: String): Boolean =
@@ -563,66 +504,46 @@ class MainActivity : Activity() {
         subtitle: String,
         action: () -> Unit
     ) {
-        val row = LinearLayout(this).apply {
+        val card = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(4), dp(11), dp(4), dp(11))
-            setBackgroundColor(paper)
+            background = rounded(white, 22)
+            setPadding(dp(14), dp(12), dp(14), dp(12))
             isClickable = true
             isFocusable = true
             setOnClickListener { action() }
         }
-
         val initial = title.firstOrNull()?.uppercaseChar()?.toString() ?: "•"
-
         val avatar = TextView(this).apply {
             text = initial
             textSize = 19f
-            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            typeface = Typeface.DEFAULT_BOLD
             setTextColor(green)
             gravity = Gravity.CENTER
-            background = rounded(Color.rgb(225, 244, 233), 50)
+            background = rounded(Color.rgb(226, 245, 235), 30)
         }
-
-        row.addView(
+        card.addView(
             avatar,
-            LinearLayout.LayoutParams(dp(44), dp(44)).apply {
-                rightMargin = dp(14)
+            LinearLayout.LayoutParams(dp(46), dp(46)).apply {
+                rightMargin = dp(12)
             }
         )
-
         val details = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
         }
-
         details.addView(text(title, 16f, ink, true))
-
         details.addView(
-            text(subtitle, 13f, muted).apply {
+            text(subtitle, 12f, muted).apply {
                 maxLines = 2
-                setPadding(0, dp(3), 0, 0)
+                setPadding(0, dp(4), 0, 0)
             }
         )
-
-        row.addView(details, LinearLayout.LayoutParams(0, -2, 1f))
-
-        val container = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            addView(row, LinearLayout.LayoutParams(-1, -2))
-
-            addView(
-                View(this@MainActivity).apply {
-                    setBackgroundColor(line)
-                },
-                LinearLayout.LayoutParams(-1, dp(1)).apply {
-                    leftMargin = dp(58)
-                }
-            )
-        }
-
+        card.addView(details, LinearLayout.LayoutParams(0, -2, 1f))
         parent.addView(
-            container,
-            LinearLayout.LayoutParams(-1, -2)
+            card,
+            LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = dp(8)
+            }
         )
     }
 
