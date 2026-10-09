@@ -89,7 +89,7 @@ class MainActivity : Activity() {
         textSize = size
         setTextColor(foreground)
         gravity = Gravity.CENTER
-        background = rounded(background, 24)
+        this.background = rounded(background, 24)
         isClickable = true
         isFocusable = true
         setOnClickListener { action() }
@@ -323,7 +323,7 @@ class MainActivity : Activity() {
         }
         val search = EditText(this).apply {
             hint = "Search name or number"
-            singleLine = true
+            isSingleLine = true
             textSize = 15f
             setText(contactSearch)
             setPadding(dp(14), 0, dp(8), 0)
