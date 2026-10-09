@@ -2,7 +2,8 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -24,8 +25,10 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          packages: |\n            platforms;android-35\n            build-tools;35.0.0
+
+      - name: Install Android SDK packages
+        run: |
+          "$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
