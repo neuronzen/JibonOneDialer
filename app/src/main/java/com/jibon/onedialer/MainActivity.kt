@@ -174,11 +174,16 @@ class MainActivity : Activity() {
             setPadding(dp(60), 0, dp(60), 0)
         }
         val callBtn = makeCallButton()
-        val delBtn = ImageView(this).apply {
-            setImageResource(android.R.drawable.ic_delete)
-            setColorFilter(primaryText)
-            setPadding(dp(18), dp(18), dp(18), dp(18))
-            layoutParams = LinearLayout.LayoutParams(dp(52), dp(52)).apply {
+        val delBtn = TextView(this).apply {
+            text = "\u2715"
+            textSize = 18f
+            setTextColor(Color.WHITE)
+            gravity = Gravity.CENTER
+            background = GradientDrawable().apply {
+                cornerRadius = dp(20).toFloat()
+                setColor(Color.parseColor("#8A8A8E"))
+            }
+            layoutParams = LinearLayout.LayoutParams(dp(56), dp(40)).apply {
                 gravity = Gravity.CENTER_VERTICAL
             }
             setOnClickListener {
@@ -196,12 +201,27 @@ class MainActivity : Activity() {
         }
         deleteBtnRef = delBtn
 
+        val videoBtn = TextView(this).apply {
+            text = "\uD83D\uDCF9"
+            textSize = 20f
+            gravity = Gravity.CENTER
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.parseColor("#FFE9C2"))
+                setStroke(dp(1), Color.parseColor("#E0E0E5"))
+            }
+            layoutParams = LinearLayout.LayoutParams(dp(48), dp(48)).apply {
+                gravity = Gravity.CENTER_VERTICAL
+            }
+        }
+
         val leftSpacer = View(this).apply {
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
         }
         val rightSpacer = View(this).apply {
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
         }
+        callRow.addView(videoBtn)
         callRow.addView(leftSpacer)
         callRow.addView(callBtn)
         callRow.addView(rightSpacer)
@@ -222,13 +242,19 @@ class MainActivity : Activity() {
     }
 
     private fun makeDotsMenuIcon(): View = TextView(this).apply {
-        text = "\u22EE"  // ⋮
+        text = "\u22EE"
         textSize = 22f
         setTextColor(primaryText)
         gravity = Gravity.CENTER
         layoutParams = LinearLayout.LayoutParams(dp(48), dp(48))
         isClickable = true
-        setOnClickListener { /* menu */ }
+        setOnClickListener { v ->
+            val popup = android.widget.PopupMenu(this@MainActivity, v)
+            popup.menu.add("Speed dial numbers")
+            popup.menu.add("Open to keypad")
+            popup.menu.add("Settings")
+            popup.show()
+        }
     }
 
     private fun makeDialKey(digit: String, letters: String, display: TextView): View {
@@ -244,7 +270,7 @@ class MainActivity : Activity() {
             isFocusable = true
         }
         // Display digit with Samsung-style: "*" as asterisk, "1" plain
-        val digitDisplay = if (digit == "*") "✱" else digit
+        val digitDisplay = if (digit == "*") "\u2731" else digit
         cell.addView(TextView(this).apply {
             text = digitDisplay
             textSize = 32f
