@@ -26,7 +26,7 @@ class MainActivity : Activity() {
     private lateinit var rootLayout: LinearLayout
     private var currentTab = 0
     private var displayRef: TextView? = null
-    private var deleteBtnRef: ImageView? = null
+    private var deleteBtnRef: View? = null
     private var callRowRef: LinearLayout? = null
 
     private val dialedNumber = StringBuilder()
