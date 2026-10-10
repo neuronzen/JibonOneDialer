@@ -110,7 +110,7 @@ class MainActivity : Activity() {
             )
         }
         topBar.addView(makeTopIcon(android.R.drawable.ic_menu_search))
-        topBar.addView(makeTopIcon(android.R.drawable.ic_menu_more))
+        topBar.addView(makeDotsMenuIcon())
         rootLayout.addView(topBar)
 
         // ---------- Number display (top, appears when typing) ----------
@@ -221,6 +221,16 @@ class MainActivity : Activity() {
         layoutParams = LinearLayout.LayoutParams(dp(48), dp(48))
     }
 
+    private fun makeDotsMenuIcon(): View = TextView(this).apply {
+        text = "\u22EE"  // ⋮
+        textSize = 22f
+        setTextColor(primaryText)
+        gravity = Gravity.CENTER
+        layoutParams = LinearLayout.LayoutParams(dp(48), dp(48))
+        isClickable = true
+        setOnClickListener { /* menu */ }
+    }
+
     private fun makeDialKey(digit: String, letters: String, display: TextView): View {
         val cell = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -297,16 +307,14 @@ class MainActivity : Activity() {
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(72)
             )
-            setPadding(0, dp(8), 0, dp(8))
+            setPadding(0, dp(6), 0, dp(6))
         }
-
         val items = listOf(
-            Triple("Keypad", android.R.drawable.ic_menu_call, 0),
-            Triple("Recents", android.R.drawable.ic_menu_recent_history, 1),
-            Triple("Contacts", android.R.drawable.ic_menu_myplaces, 2)
+            Triple("Keypad", 0, 0),
+            Triple("Recents", 1, 0),
+            Triple("Contacts", 2, 0)
         )
-
-        items.forEach { (label, icon, idx) ->
+        items.forEach { (label, idx, _) ->
             val item = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER
@@ -315,21 +323,86 @@ class MainActivity : Activity() {
                 setOnClickListener { switchTab(idx) }
             }
             val tint = if (idx == currentTab) accentGreen else navInactive
-            item.addView(ImageView(this).apply {
-                setImageResource(icon)
-                setColorFilter(tint)
-                layoutParams = LinearLayout.LayoutParams(dp(26), dp(26))
-            })
+
+            val iv = ImageView(this).apply {
+                layoutParams = LinearLayout.LayoutParams(dp(28), dp(28))
+                setImageDrawable(
+                    when (idx) {
+                        0 -> makeKeypadIcon(tint)
+                        1 -> makeRecentsIcon(tint)
+                        else -> makeContactsIcon(tint)
+                    }
+                )
+            }
+            item.addView(iv)
             item.addView(TextView(this).apply {
                 text = label
                 textSize = 12f
                 setTextColor(tint)
                 gravity = Gravity.CENTER
-                setPadding(0, dp(4), 0, 0)
+                setPadding(0, dp(2), 0, 0)
             })
             nav.addView(item)
         }
         return nav
+    }
+
+    // 3x3 dots grid (Samsung Keypad)
+    private fun makeKeypadIcon(color: Int): android.graphics.drawable.Drawable {
+        val s = dp(28)
+        val bmp = android.graphics.Bitmap.createBitmap(s, s, android.graphics.Bitmap.Config.ARGB_8888)
+        val c = android.graphics.Canvas(bmp)
+        val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            setColor(color); style = android.graphics.Paint.Style.FILL
+        }
+        val r = s * 0.09f
+        val cx = s / 2f
+        val step = s * 0.30f
+        val start = cx - step
+        for (i in 0..2) for (j in 0..2) {
+            c.drawCircle(start + i * step, start + j * step, r, p)
+        }
+        return android.graphics.drawable.BitmapDrawable(resources, bmp)
+    }
+
+    // Circle with clock hands
+    private fun makeRecentsIcon(color: Int): android.graphics.drawable.Drawable {
+        val s = dp(28)
+        val bmp = android.graphics.Bitmap.createBitmap(s, s, android.graphics.Bitmap.Config.ARGB_8888)
+        val c = android.graphics.Canvas(bmp)
+        val stroke = s * 0.09f
+        val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            setColor(color); style = android.graphics.Paint.Style.STROKE
+            this.strokeWidth = stroke; strokeCap = android.graphics.Paint.Cap.ROUND
+        }
+        val cx = s / 2f
+        c.drawCircle(cx, cx, s * 0.40f, p)
+        // hour hand (up)
+        c.drawLine(cx, cx, cx, s * 0.22f, p)
+        // minute hand (right)
+        c.drawLine(cx, cx, s * 0.75f, cx, p)
+        return android.graphics.drawable.BitmapDrawable(resources, bmp)
+    }
+
+    // Person outline (Samsung Contacts)
+    private fun makeContactsIcon(color: Int): android.graphics.drawable.Drawable {
+        val s = dp(28)
+        val bmp = android.graphics.Bitmap.createBitmap(s, s, android.graphics.Bitmap.Config.ARGB_8888)
+        val c = android.graphics.Canvas(bmp)
+        val stroke = s * 0.09f
+        val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            setColor(color); style = android.graphics.Paint.Style.STROKE
+            this.strokeWidth = stroke; strokeCap = android.graphics.Paint.Cap.ROUND
+        }
+        val cx = s / 2f
+        // head
+        c.drawCircle(cx, s * 0.32f, s * 0.16f, p)
+        // shoulders arc
+        val rect = android.graphics.RectF(
+            s * 0.20f, s * 0.50f, s * 0.80f, s * 1.00f
+        )
+        c.drawArc(rect, 180f, 180f, false, p)
+        return android.graphics.drawable.BitmapDrawable(resources, bmp)
     }
 
     private fun switchTab(index: Int) {
@@ -352,7 +425,7 @@ class MainActivity : Activity() {
             setPadding(dp(16), dp(12), dp(16), dp(4))
         }
         topBar.addView(makeTopIcon(android.R.drawable.ic_menu_search))
-        topBar.addView(makeTopIcon(android.R.drawable.ic_menu_more))
+        topBar.addView(makeDotsMenuIcon())
         rootLayout.addView(topBar)
 
         val scroll = ScrollView(this).apply {
@@ -430,7 +503,7 @@ class MainActivity : Activity() {
         }
         topBar.addView(makeTopIcon(android.R.drawable.ic_menu_add))
         topBar.addView(makeTopIcon(android.R.drawable.ic_menu_search))
-        topBar.addView(makeTopIcon(android.R.drawable.ic_menu_more))
+        topBar.addView(makeDotsMenuIcon())
         rootLayout.addView(topBar)
 
         val scroll = ScrollView(this).apply {
