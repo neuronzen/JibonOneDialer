@@ -165,44 +165,78 @@ class MainActivity : AppCompatActivity() {
 
     private fun showKeypad() {
         clearRoot()
-        val scroll = ScrollView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f
-            )
-            isFillViewport = true
-        }
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setBackgroundColor(bgColor)
-        }
-        content.addView(buildHeader("Phone"))
 
-        // Number display
+        val content = androidx.constraintlayout.widget.ConstraintLayout(this).apply {
+            setBackgroundColor(bgColor)
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        }
+
+        // --- Header "Phone" ---
+        val header = TextView(this).apply {
+            text = "Phone"
+            textSize = 26f
+            setTextColor(primaryText)
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            id = View.generateViewId()
+        }
+        content.addView(header)
+        val headerLp = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply {
+            topToTop = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+            startToStart = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+            topMargin = dp(20)
+            marginStart = dp(20)
+        }
+        header.layoutParams = headerLp
+
+        // --- Number display ---
         val display = TextView(this).apply {
             text = dialedNumber.toString()
             textSize = 34f
             gravity = Gravity.CENTER
             setTextColor(primaryText)
             typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
-            setPadding(dp(24), dp(24), dp(24), dp(16))
-            minHeight = dp(80)
-            layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
+            setPadding(dp(24), dp(12), dp(24), dp(12))
+            minHeight = dp(70)
+            id = View.generateViewId()
             tag = "display"
         }
         content.addView(display)
 
-        // Dial pad grid
+        // --- Bottom nav pill (anchor at bottom) ---
+        val navWrapper = buildBottomNav()
+        navWrapper.id = View.generateViewId()
+        content.addView(navWrapper)
+
+        // --- Actions row (call + delete) ---
+        val actions = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            id = View.generateViewId()
+        }
+        val callBtn = makeCallButton()
+        val delBtn = makeDeleteButton(display)
+
+        val callWrap = FrameLayout(this)
+        callWrap.layoutParams = LinearLayout.LayoutParams(0, dp(80), 1f)
+        callWrap.addView(callBtn)
+        val delWrap = FrameLayout(this)
+        delWrap.layoutParams = LinearLayout.LayoutParams(0, dp(80), 1f)
+        delWrap.addView(delBtn)
+        actions.addView(callWrap)
+        actions.addView(delWrap)
+        content.addView(actions)
+
+        // --- Dial pad grid ---
         val grid = GridLayout(this).apply {
             columnCount = 3
             rowCount = 4
-            setPadding(dp(16), dp(8), dp(16), dp(8))
-            layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
+            id = View.generateViewId()
         }
         val keys = listOf(
             Triple("1", "", ""),
@@ -223,44 +257,54 @@ class MainActivity : AppCompatActivity() {
         }
         content.addView(grid)
 
-        // Call + delete row
-        val actions = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-            setPadding(dp(24), dp(20), dp(24), dp(20))
+        // --- Constraints ---
+        val displayLp = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply {
+            topToBottom = header.id
+            startToStart = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+            endToEnd = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
         }
-        val emptyLeft = View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(0, dp(64), 1f)
-        }
-        val callBtn = makeCallButton()
-        val delContainer = FrameLayout(this).apply {
-            layoutParams = LinearLayout.LayoutParams(0, dp(64), 1f)
-        }
-        val delBtn = ImageView(this).apply {
-            setImageResource(android.R.drawable.ic_delete)
-            setColorFilter(primaryText)
-            setPadding(dp(20), dp(20), dp(20), dp(20))
-            layoutParams = FrameLayout.LayoutParams(dp(56), dp(56)).apply {
-                gravity = Gravity.CENTER
-            }
-            setOnClickListener {
-                if (dialedNumber.isNotEmpty()) {
-                    dialedNumber.deleteCharAt(dialedNumber.length - 1)
-                    display.text = dialedNumber.toString()
-                }
-            }
-        }
-        delContainer.addView(delBtn)
+        display.layoutParams = displayLp
 
-        actions.addView(emptyLeft)
-        actions.addView(callBtn)
-        actions.addView(delContainer)
-        content.addView(actions)
+        val navLp = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply {
+            bottomToBottom = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+            startToStart = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+            endToEnd = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+            bottomMargin = dp(12)
+        }
+        navWrapper.layoutParams = navLp
 
-        // Bottom nav
-        content.addView(buildBottomNav())
-        scroll.addView(content)
-        rootLayout.addView(scroll)
+        val actionsLp = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            dp(90)
+        ).apply {
+            bottomToTop = navWrapper.id
+            startToStart = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+            endToEnd = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+            bottomMargin = dp(8)
+        }
+        actions.layoutParams = actionsLp
+
+        val gridLp = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            0
+        ).apply {
+            topToBottom = display.id
+            bottomToTop = actions.id
+            startToStart = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+            endToEnd = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+            horizontalMargin = dp(16)
+            verticalMargin = dp(8)
+            height = 0
+        }
+        grid.layoutParams = gridLp
+
+        rootLayout.addView(content)
     }
 
     private fun makeDialKey(digit: String, letters: String, display: TextView): View {
@@ -269,16 +313,17 @@ class MainActivity : AppCompatActivity() {
             gravity = Gravity.CENTER
             layoutParams = GridLayout.LayoutParams().apply {
                 width = 0
-                height = dp(72)
+                height = GridLayout.LayoutParams.WRAP_CONTENT
                 columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
-                setMargins(dp(6), dp(6), dp(6), dp(6))
+                rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+                setMargins(dp(4), dp(4), dp(4), dp(4))
             }
             isClickable = true
             isFocusable = true
         }
         val digitView = TextView(this).apply {
             text = digit
-            textSize = 26f
+            textSize = 32f
             setTextColor(primaryText)
             typeface = Typeface.create("sans-serif", Typeface.NORMAL)
             gravity = Gravity.CENTER
@@ -301,32 +346,24 @@ class MainActivity : AppCompatActivity() {
         return cell
     }
 
-    private fun makeCallButton(): View {
-        val frame = FrameLayout(this)
-        val lp = LinearLayout.LayoutParams(0, dp(64), 1f)
-        frame.layoutParams = lp
-
+    private fun makeDeleteButton(display: TextView): View {
         val btn = ImageView(this).apply {
-            setImageResource(android.R.drawable.ic_menu_call)
-            setColorFilter(Color.WHITE)
-            setPadding(dp(18), dp(18), dp(18), dp(18))
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(accentGreen)
-            }
-            elevation = dp(4).toFloat()
-            layoutParams = FrameLayout.LayoutParams(dp(64), dp(64)).apply {
+            setImageResource(android.R.drawable.ic_delete)
+            setColorFilter(primaryText)
+            setPadding(dp(20), dp(20), dp(20), dp(20))
+            layoutParams = FrameLayout.LayoutParams(dp(56), dp(56)).apply {
                 gravity = Gravity.CENTER
             }
             setOnClickListener {
-                val num = dialedNumber.toString().ifEmpty { return@setOnClickListener }
-                val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$num"))
-                startActivity(intent)
+                if (dialedNumber.isNotEmpty()) {
+                    dialedNumber.deleteCharAt(dialedNumber.length - 1)
+                    display.text = dialedNumber.toString()
+                }
             }
         }
-        frame.addView(btn)
-        return frame
+        return btn
     }
+
 
     // ---------------- RECENTS ----------------
 
