@@ -298,8 +298,7 @@ class MainActivity : AppCompatActivity() {
             bottomToTop = actions.id
             startToStart = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
             endToEnd = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
-            horizontalMargin = dp(16)
-            verticalMargin = dp(8)
+            setMargins(dp(16), dp(8), dp(16), dp(8))
             height = 0
         }
         grid.layoutParams = gridLp
@@ -344,6 +343,29 @@ class MainActivity : AppCompatActivity() {
             display.text = dialedNumber.toString()
         }
         return cell
+    }
+
+    private fun makeCallButton(): View {
+        val btn = ImageView(this).apply {
+            setImageResource(android.R.drawable.ic_menu_call)
+            setColorFilter(Color.WHITE)
+            setPadding(dp(18), dp(18), dp(18), dp(18))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(accentGreen)
+            }
+            elevation = dp(4).toFloat()
+            layoutParams = FrameLayout.LayoutParams(dp(64), dp(64)).apply {
+                gravity = Gravity.CENTER
+            }
+            setOnClickListener {
+                val num = dialedNumber.toString()
+                if (num.isEmpty()) return@setOnClickListener
+                val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$num"))
+                startActivity(intent)
+            }
+        }
+        return btn
     }
 
     private fun makeDeleteButton(display: TextView): View {
