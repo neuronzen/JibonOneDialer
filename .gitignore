@@ -4,3 +4,6 @@ build/
 local.properties
 .idea/
 *.iml
+final-oneui-apk/
+*.apk
+*.aab
