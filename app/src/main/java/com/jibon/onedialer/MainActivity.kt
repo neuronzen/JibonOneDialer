@@ -26,11 +26,12 @@ class MainActivity : Activity() {
     private lateinit var rootLayout: LinearLayout
     private var currentTab = 0
     private var displayRef: TextView? = null
+    private var deleteBtnRef: ImageView? = null
+    private var callRowRef: LinearLayout? = null
 
     private val dialedNumber = StringBuilder()
     private val contactsList = mutableListOf<Triple<String, String, String?>>()
     private val recentsList = mutableListOf<RecentCall>()
-    private var deleteBtnRef: ImageView? = null
 
     private val PERM_REQ = 1001
 
@@ -41,11 +42,11 @@ class MainActivity : Activity() {
                 Configuration.UI_MODE_NIGHT_YES
 
     private val bgColor: Int get() = if (isDark) Color.BLACK else Color.WHITE
-    private val surfaceColor: Int get() = if (isDark) Color.parseColor("#1C1C1E") else Color.parseColor("#F2F2F7")
     private val primaryText: Int get() = if (isDark) Color.WHITE else Color.parseColor("#000000")
-    private val secondaryText: Int get() = if (isDark) Color.parseColor("#8E8E93") else Color.parseColor("#8A8A8E")
-    private val navInactive: Int get() = if (isDark) Color.parseColor("#8E8E93") else Color.parseColor("#8A8A8E")
-    private val accentGreen = Color.parseColor("#1EA362")
+    private val secondaryText: Int get() = if (isDark) Color.parseColor("#8E8E93") else Color.parseColor("#7A7A7E")
+    private val dividerColor: Int get() = if (isDark) Color.parseColor("#2C2C2E") else Color.parseColor("#E5E5EA")
+    private val navInactive: Int get() = if (isDark) Color.parseColor("#8E8E93") else Color.parseColor("#3C3C43")
+    private val accentGreen = Color.parseColor("#1DAF5A")
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(newBase)
@@ -53,8 +54,7 @@ class MainActivity : Activity() {
         Thread.setDefaultUncaughtExceptionHandler { t, e ->
             try {
                 val dir = getExternalFilesDir(null) ?: filesDir
-                java.io.File(dir, "crash.txt")
-                    .writeText("Thread: ${t.name}\n\n${e.stackTraceToString()}")
+                java.io.File(dir, "crash.txt").writeText(e.stackTraceToString())
             } catch (_: Throwable) {}
             prev?.uncaughtException(t, e)
         }
@@ -89,137 +89,182 @@ class MainActivity : Activity() {
             setTextColor(Color.RED)
             setBackgroundColor(Color.WHITE)
         }
-        val sc = ScrollView(this)
-        sc.addView(tv)
-        setContentView(sc)
+        setContentView(ScrollView(this).apply { addView(tv) })
     }
 
     private fun clearRoot() { rootLayout.removeAllViews() }
 
-    // ============ KEYPAD ============
+    // ============================================================
+    //  KEYPAD (Samsung layout: top icons → number → keypad → bottom nav)
+    // ============================================================
     private fun showKeypad() {
         clearRoot()
-        deleteBtnRef = null
 
-        rootLayout.addView(TextView(this).apply {
-            text = "Phone"
-            textSize = 26f
-            setTextColor(primaryText)
-            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-            setPadding(dp(24), dp(20), dp(24), 0)
-        })
+        // ---------- Top bar (search + menu, right aligned) ----------
+        val topBar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL or Gravity.END
+            setPadding(dp(16), dp(12), dp(16), dp(0))
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        }
+        topBar.addView(makeTopIcon(android.R.drawable.ic_menu_search))
+        topBar.addView(makeTopIcon(android.R.drawable.ic_menu_more))
+        rootLayout.addView(topBar)
 
+        // ---------- Number display (top, appears when typing) ----------
         val display = TextView(this).apply {
             text = dialedNumber.toString()
-            textSize = 34f
+            textSize = 36f
             gravity = Gravity.CENTER
             setTextColor(primaryText)
             typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
-            minHeight = dp(56)
-            setPadding(dp(24), dp(8), dp(24), dp(8))
+            setPadding(dp(24), dp(24), dp(24), dp(8))
+            minHeight = dp(0)
+            visibility = if (dialedNumber.isEmpty()) View.GONE else View.VISIBLE
         }
         displayRef = display
         rootLayout.addView(display)
 
-        val gridWrapper = FrameLayout(this).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f
-            )
+        // ---------- Middle spacer (grows when empty) ----------
+        val topSpacer = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
         }
+        rootLayout.addView(topSpacer)
+
+        // ---------- Dial pad ----------
         val grid = GridLayout(this).apply {
             columnCount = 3
             rowCount = 4
-            layoutParams = FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply { gravity = Gravity.CENTER }
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+            )
         }
-
         val keys = listOf(
-            "1" to "", "2" to "ABC", "3" to "DEF",
-            "4" to "GHI", "5" to "JKL", "6" to "MNO",
-            "7" to "PQRS", "8" to "TUV", "9" to "WXYZ",
-            "*" to "", "0" to "+", "#" to ""
+            Triple("1", "voicemail", ""),
+            Triple("2", "ABC", ""),
+            Triple("3", "DEF", ""),
+            Triple("4", "GHI", ""),
+            Triple("5", "JKL", ""),
+            Triple("6", "MNO", ""),
+            Triple("7", "PQRS", ""),
+            Triple("8", "TUV", ""),
+            Triple("9", "WXYZ", ""),
+            Triple("*", "", ""),
+            Triple("0", "+", ""),
+            Triple("#", "", "")
         )
-        keys.forEach { (digit, letters) -> grid.addView(makeDialKey(digit, letters)) }
-        gridWrapper.addView(grid)
-        rootLayout.addView(gridWrapper)
+        keys.forEach { (d, l, _) -> grid.addView(makeDialKey(d, l, display)) }
+        rootLayout.addView(grid)
 
-        val actions = LinearLayout(this).apply {
+        // ---------- Bottom spacer ----------
+        val bottomSpacer = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(16))
+        }
+        rootLayout.addView(bottomSpacer)
+
+        // ---------- Call row (call + delete, appears when typing) ----------
+        val callRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(96)
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(80)
             )
-            setPadding(dp(48), 0, dp(48), 0)
+            setPadding(dp(60), 0, dp(60), 0)
         }
-
-        val callContainer = FrameLayout(this).apply {
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
-        }
-        callContainer.addView(makeCallButton())
-
-        val delContainer = FrameLayout(this).apply {
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
-        }
+        val callBtn = makeCallButton()
         val delBtn = ImageView(this).apply {
             setImageResource(android.R.drawable.ic_delete)
             setColorFilter(primaryText)
-            setPadding(dp(20), dp(20), dp(20), dp(20))
-            layoutParams = FrameLayout.LayoutParams(dp(44), dp(44)).apply {
-                gravity = Gravity.CENTER
+            setPadding(dp(18), dp(18), dp(18), dp(18))
+            layoutParams = LinearLayout.LayoutParams(dp(52), dp(52)).apply {
+                gravity = Gravity.CENTER_VERTICAL
             }
-            visibility = if (dialedNumber.isEmpty()) View.INVISIBLE else View.VISIBLE
             setOnClickListener {
                 if (dialedNumber.isNotEmpty()) {
                     dialedNumber.deleteCharAt(dialedNumber.length - 1)
-                    displayRef?.text = dialedNumber.toString()
-                    if (dialedNumber.isEmpty()) visibility = View.INVISIBLE
+                    display.text = dialedNumber.toString()
+                    if (dialedNumber.isEmpty()) {
+                        display.visibility = View.GONE
+                        callRow.visibility = View.GONE
+                        topSpacer.layoutParams = LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
+                    }
                 }
             }
         }
         deleteBtnRef = delBtn
-        delContainer.addView(delBtn)
 
-        actions.addView(callContainer)
-        actions.addView(delContainer)
-        rootLayout.addView(actions)
+        val leftSpacer = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
+        }
+        val rightSpacer = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
+        }
+        callRow.addView(leftSpacer)
+        callRow.addView(callBtn)
+        callRow.addView(rightSpacer)
+        callRow.addView(delBtn)
+        callRow.visibility = if (dialedNumber.isEmpty()) View.GONE else View.VISIBLE
+        callRowRef = callRow
+        rootLayout.addView(callRow)
 
+        // ---------- Bottom nav (edge-to-edge, labels) ----------
         rootLayout.addView(buildBottomNav())
     }
 
-    private fun makeDialKey(digit: String, letters: String): View {
+    private fun makeTopIcon(resId: Int): ImageView = ImageView(this).apply {
+        setImageResource(resId)
+        setColorFilter(primaryText)
+        setPadding(dp(12), dp(12), dp(12), dp(12))
+        layoutParams = LinearLayout.LayoutParams(dp(48), dp(48))
+    }
+
+    private fun makeDialKey(digit: String, letters: String, display: TextView): View {
         val cell = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
             layoutParams = GridLayout.LayoutParams().apply {
                 columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
                 width = 0
-                height = dp(76)
+                height = dp(84)
             }
             isClickable = true
             isFocusable = true
         }
+        // Display digit with Samsung-style: "*" as asterisk, "1" plain
+        val digitDisplay = if (digit == "*") "✱" else digit
         cell.addView(TextView(this).apply {
-            text = digit
+            text = digitDisplay
             textSize = 32f
             setTextColor(primaryText)
-            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+            typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
             gravity = Gravity.CENTER
         })
-        if (letters.isNotEmpty()) {
+        if (letters.isNotEmpty() && letters != "voicemail") {
             cell.addView(TextView(this).apply {
                 text = letters
                 textSize = 10f
                 setTextColor(secondaryText)
-                letterSpacing = 0.08f
+                letterSpacing = 0.05f
                 gravity = Gravity.CENTER
             })
+        } else if (letters == "voicemail") {
+            // Small voicemail icon below 1
+            val vm = TextView(this).apply {
+                text = "◯◯"
+                textSize = 9f
+                setTextColor(secondaryText)
+                gravity = Gravity.CENTER
+            }
+            cell.addView(vm)
         }
         cell.setOnClickListener {
             dialedNumber.append(digit)
-            displayRef?.text = dialedNumber.toString()
-            deleteBtnRef?.visibility = View.VISIBLE
+            display.text = dialedNumber.toString()
+            display.visibility = View.VISIBLE
+            callRowRef?.visibility = View.VISIBLE
         }
         return cell
     }
@@ -232,9 +277,8 @@ class MainActivity : Activity() {
             shape = GradientDrawable.OVAL
             setColor(accentGreen)
         }
-        elevation = dp(3).toFloat()
-        layoutParams = FrameLayout.LayoutParams(dp(68), dp(68)).apply {
-            gravity = Gravity.CENTER
+        layoutParams = LinearLayout.LayoutParams(dp(72), dp(72)).apply {
+            gravity = Gravity.CENTER_VERTICAL
         }
         setOnClickListener {
             val num = dialedNumber.toString()
@@ -243,42 +287,49 @@ class MainActivity : Activity() {
         }
     }
 
+    // ============================================================
+    //  BOTTOM NAV (edge-to-edge with labels)
+    // ============================================================
     private fun buildBottomNav(): View {
-        val wrapper = FrameLayout(this).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(80)
-            )
-            setPadding(dp(16), dp(8), dp(16), dp(16))
-        }
-        val pill = LinearLayout(this).apply {
+        val nav = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-            background = GradientDrawable().apply {
-                cornerRadius = dp(30).toFloat()
-                setColor(surfaceColor)
-            }
-            layoutParams = FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, dp(60)
-            ).apply { gravity = Gravity.CENTER }
-            setPadding(dp(16), 0, dp(16), 0)
+            setBackgroundColor(bgColor)
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(72)
+            )
+            setPadding(0, dp(8), 0, dp(8))
         }
-        listOf(
-            android.R.drawable.ic_menu_call to 0,
-            android.R.drawable.ic_menu_recent_history to 1,
-            android.R.drawable.ic_menu_myplaces to 2
-        ).forEach { (icon, idx) ->
-            pill.addView(ImageView(this).apply {
-                setImageResource(icon)
-                setColorFilter(if (idx == currentTab) accentGreen else navInactive)
-                setPadding(dp(12), dp(12), dp(12), dp(12))
-                layoutParams = LinearLayout.LayoutParams(dp(48), dp(48)).apply {
-                    marginStart = dp(4); marginEnd = dp(4)
-                }
+
+        val items = listOf(
+            Triple("Keypad", android.R.drawable.ic_menu_call, 0),
+            Triple("Recents", android.R.drawable.ic_menu_recent_history, 1),
+            Triple("Contacts", android.R.drawable.ic_menu_myplaces, 2)
+        )
+
+        items.forEach { (label, icon, idx) ->
+            val item = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
+                isClickable = true
                 setOnClickListener { switchTab(idx) }
+            }
+            val tint = if (idx == currentTab) accentGreen else navInactive
+            item.addView(ImageView(this).apply {
+                setImageResource(icon)
+                setColorFilter(tint)
+                layoutParams = LinearLayout.LayoutParams(dp(26), dp(26))
             })
+            item.addView(TextView(this).apply {
+                text = label
+                textSize = 12f
+                setTextColor(tint)
+                gravity = Gravity.CENTER
+                setPadding(0, dp(4), 0, 0)
+            })
+            nav.addView(item)
         }
-        wrapper.addView(pill)
-        return wrapper
+        return nav
     }
 
     private fun switchTab(index: Int) {
@@ -290,16 +341,20 @@ class MainActivity : Activity() {
         }
     }
 
-    // ============ RECENTS ============
+    // ============================================================
+    //  RECENTS (Samsung: top bar, searchable list with time on right)
+    // ============================================================
     private fun showRecents() {
         clearRoot()
-        rootLayout.addView(TextView(this).apply {
-            text = "Recents"
-            textSize = 26f
-            setTextColor(primaryText)
-            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-            setPadding(dp(24), dp(20), dp(24), dp(12))
-        })
+        val topBar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL or Gravity.END
+            setPadding(dp(16), dp(12), dp(16), dp(4))
+        }
+        topBar.addView(makeTopIcon(android.R.drawable.ic_menu_search))
+        topBar.addView(makeTopIcon(android.R.drawable.ic_menu_more))
+        rootLayout.addView(topBar)
+
         val scroll = ScrollView(this).apply {
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f
@@ -331,7 +386,7 @@ class MainActivity : Activity() {
                 shape = GradientDrawable.OVAL
                 setColor(pickAvatarColor(r.name ?: r.number))
             }
-            layoutParams = LinearLayout.LayoutParams(dp(46), dp(46))
+            layoutParams = LinearLayout.LayoutParams(dp(48), dp(48))
         })
         val info = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -344,33 +399,40 @@ class MainActivity : Activity() {
             setTextColor(if (r.type == CallLog.Calls.MISSED_TYPE) Color.parseColor("#E53935") else primaryText)
         })
         info.addView(TextView(this).apply {
-            val t = when (r.type) {
-                CallLog.Calls.INCOMING_TYPE -> "Incoming"
-                CallLog.Calls.OUTGOING_TYPE -> "Outgoing"
-                CallLog.Calls.MISSED_TYPE -> "Missed"
-                else -> "Call"
-            }
-            text = "$t · ${r.number}"
+            text = r.number
             textSize = 13f
             setTextColor(secondaryText)
         })
         row.addView(info)
+
+        // time on right
+        row.addView(TextView(this).apply {
+            text = android.text.format.DateFormat.format("h:mm a", r.date).toString()
+            textSize = 12f
+            setTextColor(secondaryText)
+        })
+
         row.setOnClickListener {
             startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${r.number}")))
         }
         return row
     }
 
-    // ============ CONTACTS ============
+    // ============================================================
+    //  CONTACTS
+    // ============================================================
     private fun showContacts() {
         clearRoot()
-        rootLayout.addView(TextView(this).apply {
-            text = "Contacts"
-            textSize = 26f
-            setTextColor(primaryText)
-            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-            setPadding(dp(24), dp(20), dp(24), dp(12))
-        })
+        val topBar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL or Gravity.END
+            setPadding(dp(16), dp(12), dp(16), dp(4))
+        }
+        topBar.addView(makeTopIcon(android.R.drawable.ic_menu_add))
+        topBar.addView(makeTopIcon(android.R.drawable.ic_menu_search))
+        topBar.addView(makeTopIcon(android.R.drawable.ic_menu_more))
+        rootLayout.addView(topBar)
+
         val scroll = ScrollView(this).apply {
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f
@@ -402,7 +464,7 @@ class MainActivity : Activity() {
                 shape = GradientDrawable.OVAL
                 setColor(pickAvatarColor(name))
             }
-            layoutParams = LinearLayout.LayoutParams(dp(46), dp(46))
+            layoutParams = LinearLayout.LayoutParams(dp(48), dp(48))
         })
         val info = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -466,16 +528,10 @@ class MainActivity : Activity() {
         requestCode: Int, permissions: Array<out String>, grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == PERM_REQ) {
-            loadData()
-            switchTab(currentTab)
-        }
+        if (requestCode == PERM_REQ) loadData()
     }
 
-    private fun loadData() {
-        loadContacts()
-        loadRecents()
-    }
+    private fun loadData() { loadContacts(); loadRecents() }
 
     private fun loadContacts() {
         contactsList.clear()
