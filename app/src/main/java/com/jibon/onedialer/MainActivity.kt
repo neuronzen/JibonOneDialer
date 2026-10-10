@@ -44,24 +44,38 @@ class MainActivity : AppCompatActivity() {
     private val primaryText: Int get() = if (isDark) Color.WHITE else Color.parseColor("#000000")
     private val secondaryText: Int get() = if (isDark) Color.parseColor("#8E8E93") else Color.parseColor("#8A8A8E")
     private val accentGreen = Color.parseColor("#1EA362")
-    private val navInactive = if (isDark) Color.parseColor("#8E8E93") else Color.parseColor("#8A8A8E")
+    private val navInactive: Int
+        get() = if (isDark) Color.parseColor("#8E8E93") else Color.parseColor("#8A8A8E")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor = bgColor
-        window.navigationBarColor = bgColor
-        @Suppress("DEPRECATION")
-        window.decorView.systemUiVisibility = if (isDark) 0
-        else View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+        try {
+            window.statusBarColor = bgColor
+            window.navigationBarColor = bgColor
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = if (isDark) 0
+            else View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
 
-        rootLayout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setBackgroundColor(bgColor)
-            fitsSystemWindows = true
+            rootLayout = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setBackgroundColor(bgColor)
+                fitsSystemWindows = true
+            }
+            setContentView(rootLayout)
+            requestPermissionsIfNeeded()
+            showKeypad()
+        } catch (t: Throwable) {
+            val tv = TextView(this).apply {
+                text = "CRASH CAUGHT:\n\n" + t.stackTraceToString()
+                textSize = 11f
+                setPadding(30, 60, 30, 30)
+                setTextColor(Color.RED)
+                setBackgroundColor(Color.WHITE)
+            }
+            val sc = ScrollView(this)
+            sc.addView(tv)
+            setContentView(sc)
         }
-        setContentView(rootLayout)
-        requestPermissionsIfNeeded()
-        showKeypad()
     }
 
     private fun clearRoot() {
